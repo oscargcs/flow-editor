@@ -1,0 +1,67 @@
+<div class="flows-container">
+  <div class="flows-header">
+    <button class="btn-create" (click)="onCreate()">➕ CREATE</button>
+
+    <input
+      type="text"
+      class="search-input"
+      placeholder="Search flows..."
+      [value]="searchQuery()"
+      (input)="onSearch($event.target.value)"
+    />
+  </div>
+
+  <!-- Indicador de carga -->
+  @if (isLoading()) {
+    <div class="loading">Loading flows...</div>
+  }
+
+  @if (!isLoading()) {
+    <div class="flows-table-wrapper">
+      @if (flows().length > 0) {
+        <table class="flows-table">
+          <thead>
+          <tr>
+            <th class="col-actions">Actions</th>
+            <th class="col-name">Name</th>
+            <th class="col-consumer">Consumer</th>
+            <th class="col-services">Services</th>
+            <th class="col-producer">Producer</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (flow of filteredFlows(); track flow.id) {
+              <tr class="flow-row">
+                <td class="col-actions">
+                  <div class="action-icons">
+                    <button class="icon-btn edit-btn" title="Edit flow" (click)="onEdit(flow.id)">✎</button>
+                    <button class="icon-btn delete-btn" title="Delete flow" (click)="onDelete(flow)">🗑</button>
+                  </div>
+                </td>
+                <td class="col-name">{{ flow.name }}</td>
+                <td class="col-consumer">{{ getComponentName(flow.consumer) }}</td>
+                <td class="col-services">{{ getServicesNames(flow.services) }}</td>
+                <td class="col-producer">{{ getComponentName(flow.producer) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
+      <!-- No flows in database -->
+      @if (flows().length === 0) {
+        <div class="empty-state">
+          <p>No flows found. Create one to get started!</p>
+        </div>
+      }
+
+      <!-- No flows according to search -->
+      @if (flows().length > 0 && filteredFlows().length === 0) {
+        <div class="empty-state">
+          <p>No flows match your search.</p>
+        </div>
+      }
+    </div>
+  }
+</div>
+

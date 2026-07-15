@@ -35,7 +35,6 @@
     }
   }
 
-
   .search-input {
     width: 400px;
     padding: 10px 15px;
@@ -47,34 +46,6 @@
     &:focus {
       outline: none;
       border-color: #ff9500;
-    }
-  }
-
-}
-
-.error-message {
-  background-color: #fee;
-  border: 1px solid #fcc;
-  border-radius: 4px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #c33;
-  font-size: 14px;
-
-  .btn-close-error {
-    background: none;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    color: #c33;
-    padding: 0;
-    margin-left: 10px;
-
-    &:hover {
-      color: #933;
     }
   }
 }
@@ -90,8 +61,6 @@
   border: 1px solid #ddd;
   border-radius: 4px;
   overflow: hidden;
-  background: white;
-  margin-bottom: 30px;
 
   .flows-table {
     width: 100%;
@@ -113,7 +82,7 @@
     tbody {
       tr {
         border-bottom: 1px solid #eee;
-        transition: background-color 0.2s ease;
+        transition: background-color 0.3s ease;
 
         &:last-child {
           border-bottom: none;
@@ -167,7 +136,7 @@
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 3px;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.3s ease;
 
     &.edit-btn {
       color: #007bff;

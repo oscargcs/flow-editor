@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { FlowsListComponent } from './flows/flows-list/flows-list.component';
+import {FlowCreate} from './flows/flow-create/flow-create';
 
 export const routes: Routes = [
   {
@@ -11,11 +12,11 @@ export const routes: Routes = [
       },
       {
         path: 'create',
-        component: FlowsListComponent // TODO: replace with CreateFlowComponent
+        component: FlowCreate // TODO: replace with CreateFlowComponent
       },
       {
         path: 'edit/:id',
-        component: FlowsListComponent // TODO: replace with EditFlowComponent
+        component: FlowCreate // TODO: replace with EditFlowComponent
       }
     ]
   },

@@ -1,15 +1,15 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Flow, CreateFlowRequest, UpdateFlowRequest } from '../models/flow.model';
+import {Flow} from '../types/flow.model';
+import {CreateFlowRequest, UpdateFlowRequest} from '../types/flow-requests';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FlowsService {
-  private apiUrl = 'http://localhost:3000/flow'; // ajusta el puerto/host según tu backend
-
-  constructor(private http: HttpClient) {}
+  private readonly http: HttpClient = inject(HttpClient);
+  private readonly apiUrl: string = 'http://localhost:3000/flow';
 
   getFlows(): Observable<Flow[]> {
     return this.http.get<Flow[]>(this.apiUrl);
@@ -18,7 +18,6 @@ export class FlowsService {
   getFlow(id: string): Observable<Flow> {
     return this.http.get<Flow>(`${this.apiUrl}/${id}`);
   }
-
 
   createFlow(request: CreateFlowRequest): Observable<Flow> {
     return this.http.post<Flow>(this.apiUrl, request);
@@ -34,9 +33,7 @@ export class FlowsService {
 
   searchFlows(flows: Flow[], query: string): Flow[] {
     if (!query.trim()) return flows;
-    return flows.filter(flow =>
-      flow.name.toLowerCase().includes(query.toLowerCase())
-    );
+    const normalizedQuery: string = query.toLowerCase();
+    return flows.filter((flow: Flow): boolean => flow.name.toLowerCase().includes(normalizedQuery));
   }
 }
-

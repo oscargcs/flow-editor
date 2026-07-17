@@ -1,33 +1,31 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, Signal, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { FlowsService } from '../services/flows.service';
-import {Flow, FlowComponent} from '../models/flow.model';
+import {Flow, FlowComponent} from '../types/flow.model';
+import {MatIcon} from '@angular/material/icon';
+import {MatButton, MatIconButton} from '@angular/material/button';
 
 @Component({
   selector: 'app-flows-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatIcon, MatButton, MatIconButton],
   templateUrl: './flows-list.component.html',
   styleUrl: './flows-list.component.scss'
 })
 export class FlowsListComponent implements OnInit {
-  // Señales
-  flows = signal<Flow[]>([]);
-  searchQuery = signal('');
-  isLoading = signal(false);
+  private readonly flowsService: FlowsService = inject(FlowsService);
+  private readonly router: Router = inject(Router);
 
-  // Computed signals
-  filteredFlows = computed(() => {
-    const allFlows = this.flows();
+  readonly flows: WritableSignal<Flow[]> = signal([]);
+  readonly searchQuery: WritableSignal<string> = signal('');
+  readonly isLoading: WritableSignal<boolean> = signal(false);
+
+  readonly filteredFlows: Signal<Flow[]> = computed((): Flow[] => {
+    const allFlows: Flow[] = this.flows();
     return this.flowsService.searchFlows(allFlows, this.searchQuery());
   });
-
-  constructor(
-    private flowsService: FlowsService,
-    private router: Router
-  ) {}
 
   ngOnInit(): void {
     this.loadFlows();
@@ -36,11 +34,11 @@ export class FlowsListComponent implements OnInit {
   private loadFlows(): void {
     this.isLoading.set(true);
     this.flowsService.getFlows().subscribe({
-      next: (data) => {
+      next: (data: Flow[]): void => {
         this.flows.set(data);
         this.isLoading.set(false);
       },
-      error: (err) => {
+      error: (err: unknown): void => {
         console.error('Error loading flows', err);
         this.isLoading.set(false);
       }
@@ -61,10 +59,10 @@ export class FlowsListComponent implements OnInit {
     }
 
     this.flowsService.deleteFlow(flow.id).subscribe({
-      next: () => {
+      next: (): void => {
         this.loadFlows();
       },
-      error: (err) => {
+      error: (err: unknown): void => {
         console.error('Error deleting flow', err);
       }
     });
@@ -74,7 +72,6 @@ export class FlowsListComponent implements OnInit {
     this.searchQuery.set(query);
   }
 
-
   getComponentName(flowComponent: FlowComponent): string {
     //TODO: Make it return a proper name
     return flowComponent?.id || 'Unknown';
@@ -82,12 +79,6 @@ export class FlowsListComponent implements OnInit {
 
   getServicesNames(services: FlowComponent[]): string {
     if (!services || services.length === 0) return '-';
-    return services.map(s => this.getComponentName(s)).join(', ');
+    return services.map((s: FlowComponent): string => this.getComponentName(s)).join(', ');
   }
 }
-
-
-
-
-
-

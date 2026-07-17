@@ -1,18 +1,4 @@
-
-export interface FlowComponent {
-  id: string;
-  config: Record<string, any>;
-}
-
-export interface Flow {
-  id: string;
-  name: string;
-  consumer: FlowComponent;
-  services: FlowComponent[];
-  producer: FlowComponent;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import {FlowComponent} from './flow.model';
 
 export interface CreateFlowRequest {
   name: string;
@@ -27,4 +13,3 @@ export interface UpdateFlowRequest {
   services?: FlowComponent[];
   producer?: FlowComponent;
 }
-

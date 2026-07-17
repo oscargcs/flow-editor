@@ -1,6 +1,12 @@
 <div class="flows-container">
   <div class="flows-header">
-    <button class="btn-create" (click)="onCreate()">➕ CREATE</button>
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="onCreate()">
+      <mat-icon>add</mat-icon>
+      Create
+    </button>
 
     <input
       type="text"

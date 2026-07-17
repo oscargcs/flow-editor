@@ -18,7 +18,7 @@
 
       <mat-form-field appearance="outline" class="field field-consumer">
         <mat-label>Consumer</mat-label>
-        <mat-select formControlName="consumer">
+        <mat-select formControlName="consumer" (selectionChange)="onConsumerChange($event)">
           @for (option of consumerOptions(); track option.id) {
             <mat-option [value]="option.id">{{ option.label }}</mat-option>
           }
@@ -28,18 +28,30 @@
         }
       </mat-form-field>
 
+      @if (formService.consumerPanel(); as panel) {
+        <app-config-panel [panel]="panel" />
+      }
+
       <mat-form-field appearance="outline" class="field field-services">
         <mat-label>Services</mat-label>
-        <mat-select formControlName="services" multiple>
+        <mat-select formControlName="services" multiple (selectionChange)="onServicesChange($event)">
           @for (option of serviceOptions(); track option.id) {
             <mat-option [value]="option.id">{{ option.label }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
 
+      @if (formService.servicePanels().length > 0) {
+        <div class="service-config-grid">
+          @for (panel of formService.servicePanels(); track panel.componentId) {
+            <app-config-panel [panel]="panel" />
+          }
+        </div>
+      }
+
       <mat-form-field appearance="outline" class="field field-producer">
         <mat-label>Producer</mat-label>
-        <mat-select formControlName="producer">
+        <mat-select formControlName="producer" (selectionChange)="onProducerChange($event)">
           @for (option of producerOptions(); track option.id) {
             <mat-option [value]="option.id">{{ option.label }}</mat-option>
           }
@@ -48,6 +60,10 @@
           <mat-error>Producer is required.</mat-error>
         }
       </mat-form-field>
+
+      @if (formService.producerPanel(); as panel) {
+        <app-config-panel [panel]="panel" />
+      }
 
       <div class="actions">
         <button mat-stroked-button type="button" (click)="onCancel()">Cancel</button>

@@ -1,0 +1,16 @@
+<div class="config-panel" [formGroup]="panel().form">
+  <h3 class="config-panel-title">{{ panel().label }}</h3>
+  @for (field of panel().fields; track field.id) {
+    <div class="config-field">
+      @if (field.type === booleanFieldType) {
+        <mat-checkbox [formControlName]="field.id">{{ field.label }}</mat-checkbox>
+      } @else {
+        <mat-form-field appearance="outline">
+          <mat-label>{{ field.label }}</mat-label>
+          <input matInput [formControlName]="field.id" />
+        </mat-form-field>
+      }
+    </div>
+  }
+</div>
+

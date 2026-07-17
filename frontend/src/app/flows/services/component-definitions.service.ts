@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { ComponentConfigurationField } from '../types/component-configuration-field';
 
 export interface ComponentOption {
   id: string;
@@ -22,7 +23,7 @@ export class ComponentDefinitionsService {
     return this.http.get<GroupedComponentOptions>(`${this.apiUrl}/options`);
   }
 
-  getConfiguration(componentId: string): Observable<Record<string, unknown>> {
-    return this.http.get<Record<string, unknown>>(`${this.apiUrl}/configuration/${componentId}`);
+  getConfiguration(componentId: string): Observable<ComponentConfigurationField[]> {
+    return this.http.get<ComponentConfigurationField[]>(`${this.apiUrl}/configuration/${componentId}`);
   }
 }

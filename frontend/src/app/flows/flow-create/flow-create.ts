@@ -5,20 +5,29 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { MatSelectModule, MatSelectChange } from '@angular/material/select';
 import { FlowsService } from '../services/flows.service';
 import {
   ComponentDefinitionsService,
   ComponentOption,
   GroupedComponentOptions,
 } from '../services/component-definitions.service';
-import {Flow} from '../types/flow.model';
-import {FlowFormService} from '../services/flow-form.service';
-import {FlowFormFieldName, FlowFormGroup} from '../types/flow-form.types';
+import { Flow, FlowComponent } from '../types/flow.model';
+import { FlowFormService } from '../services/flow-form.service';
+import { FlowFormFieldName, FlowFormGroup } from '../types/flow-form.types';
+import { ConfigPanelComponent } from '../config-panel/config-panel.component';
 
 @Component({
   selector: 'app-flow-create',
-  imports: [CommonModule, ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    ConfigPanelComponent,
+  ],
   providers: [FlowFormService],
   templateUrl: './flow-create.html',
   styleUrl: './flow-create.scss',
@@ -28,9 +37,10 @@ export class FlowCreate {
   private readonly componentDefinitionsService: ComponentDefinitionsService = inject(ComponentDefinitionsService);
   private readonly router: Router = inject(Router);
   private readonly route: ActivatedRoute = inject(ActivatedRoute);
-  private readonly formService: FlowFormService = inject(FlowFormService);
+  protected readonly formService: FlowFormService = inject(FlowFormService);
 
   readonly form: FlowFormGroup = this.formService.form;
+
 
   readonly isEditMode: WritableSignal<boolean> = signal(false);
   readonly isLoading: WritableSignal<boolean> = signal(false);
@@ -93,12 +103,36 @@ export class FlowCreate {
     this.router.navigate(['/flows/list']);
   }
 
+  onConsumerChange(event: MatSelectChange): void {
+    const componentId: string = event.value;
+    const label: string = this.findLabel(this.consumerOptions(), componentId);
+    this.formService.loadConsumerConfig(componentId, label);
+  }
+
+  onProducerChange(event: MatSelectChange): void {
+    const componentId: string = event.value;
+    const label: string = this.findLabel(this.producerOptions(), componentId);
+    this.formService.loadProducerConfig(componentId, label);
+  }
+
+  onServicesChange(event: MatSelectChange): void {
+    const componentIds: string[] = event.value;
+    const selected: ComponentOption[] = componentIds.map(
+      (id: string): ComponentOption => ({ id, label: this.findLabel(this.serviceOptions(), id) }),
+    );
+    this.formService.syncServicePanels(selected);
+  }
+
   isFieldInvalid(fieldName: FlowFormFieldName): boolean {
     return this.formService.isFieldInvalid(fieldName);
   }
 
   trackById(_index: number, item: ComponentOption): string {
     return item.id;
+  }
+
+  private findLabel(options: ComponentOption[], componentId: string): string {
+    return options.find((option: ComponentOption): boolean => option.id === componentId)?.label ?? componentId;
   }
 
   private loadOptions(): void {
@@ -117,6 +151,7 @@ export class FlowCreate {
     this.flowsService.getFlow(flowId).subscribe({
       next: (flow: Flow): void => {
         this.formService.patchFromFlow(flow);
+        this.prefillConfigPanels(flow);
         this.isLoading.set(false);
       },
       error: (error: unknown): void => {
@@ -125,4 +160,30 @@ export class FlowCreate {
       },
     });
   }
+
+  /** Trigger the config panel loads for the flow being edited, seeding each panel's form with its saved config values. */
+  private prefillConfigPanels(flow: Flow): void {
+    this.formService.loadConsumerConfig(
+      flow.consumer.id,
+      this.findLabel(this.consumerOptions(), flow.consumer.id),
+      flow.consumer.config,
+    );
+    this.formService.loadProducerConfig(
+      flow.producer.id,
+      this.findLabel(this.producerOptions(), flow.producer.id),
+      flow.producer.config,
+    );
+
+    const selected: ComponentOption[] = flow.services.map(
+      (service: FlowComponent): ComponentOption => ({
+        id: service.id,
+        label: this.findLabel(this.serviceOptions(), service.id),
+      }),
+    );
+    const initialConfigs: Map<string, Record<string, unknown>> = new Map(
+      flow.services.map((service: FlowComponent): [string, Record<string, unknown>] => [service.id, service.config]),
+    );
+    this.formService.syncServicePanels(selected, initialConfigs);
+  }
 }
+

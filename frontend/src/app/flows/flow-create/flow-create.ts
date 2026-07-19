@@ -64,7 +64,7 @@ export class FlowCreate {
   }
 
   onSave(): void {
-    if (this.form.invalid || this.isSaving()) {
+    if (!this.formService.isValid() || this.isSaving()) {
       this.formService.markAllAsTouched();
       return;
     }

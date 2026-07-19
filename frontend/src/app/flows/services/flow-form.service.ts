@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, WritableSignal } from '@angular/core';
-import { FormBuilder, FormControl, FormRecord, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormRecord, ValidatorFn, Validators } from '@angular/forms';
 import { forkJoin, map, Observable, of } from 'rxjs';
 import { Flow, FlowComponent } from '../types/flow.model';
 import { FlowFormFieldName, FlowFormGroup } from '../types/flow-form.types';
@@ -47,8 +47,25 @@ export class FlowFormService {
     return control.invalid && (control.dirty || control.touched);
   }
 
+  /** Checks whether the top-level form and every selected configuration panel's form are valid. */
+  isValid(): boolean {
+    console.log(this.form)
+    return this.form.valid && this.getSelectedPanels().every((panel: ComponentConfigPanel) => panel.form.valid);
+  }
+
   markAllAsTouched(): void {
     this.form.markAllAsTouched();
+    this.getSelectedPanels().forEach((panel: ComponentConfigPanel) => panel.form.markAllAsTouched());
+  }
+
+  /** Returns all selected configuration panels. */
+  private getSelectedPanels(): ComponentConfigPanel[] {
+    const servicePanels: ComponentConfigPanel[] = [...this.servicePanels()];
+    const consumerPanels: ComponentConfigPanel | null = this.consumerPanel();
+    const producerPanels: ComponentConfigPanel | null = this.producerPanel();
+    if (consumerPanels) servicePanels.push(consumerPanels);
+    if (producerPanels) servicePanels.push(producerPanels);
+    return servicePanels;
   }
 
   patchFromFlow(flow: Flow): void {
@@ -68,8 +85,8 @@ export class FlowFormService {
     }
 
     this.resolvePanel$(componentId, label, initialConfig).subscribe({
-      next: (panel: ComponentConfigPanel): void => this.consumerPanel.set(panel),
-      error: (error: unknown): void => console.error('Error loading consumer configuration', error),
+      next: (panel: ComponentConfigPanel) => this.consumerPanel.set(panel),
+      error: (error: unknown) => console.error('Error loading consumer configuration', error),
     });
   }
 
@@ -81,8 +98,8 @@ export class FlowFormService {
     }
 
     this.resolvePanel$(componentId, label, initialConfig).subscribe({
-      next: (panel: ComponentConfigPanel): void => this.producerPanel.set(panel),
-      error: (error: unknown): void => console.error('Error loading producer configuration', error),
+      next: (panel: ComponentConfigPanel) => this.producerPanel.set(panel),
+      error: (error: unknown) => console.error('Error loading producer configuration', error),
     });
   }
 
@@ -104,7 +121,7 @@ export class FlowFormService {
     );
 
     forkJoin(panels$).subscribe({
-      next: (panels: ComponentConfigPanel[]): void => this.servicePanels.set(panels),
+      next: (panels: ComponentConfigPanel[]) => this.servicePanels.set(panels),
       error: (error: unknown): void => console.error('Error loading service configuration', error),
     });
   }
@@ -115,7 +132,7 @@ export class FlowFormService {
     if (cached) return of(cached);
 
     return this.componentDefinitionsService.getConfiguration(componentId).pipe(
-      map((fields: ComponentConfigurationField[]): ComponentConfigPanel => {
+      map((fields: ComponentConfigurationField[]) => {
         const panel: ComponentConfigPanel = this.buildPanel(componentId, label, fields, initialConfig);
         this.panelCache.set(componentId, panel);
         return panel;
@@ -164,9 +181,10 @@ export class FlowFormService {
     const form: ComponentConfigFormRecord = new FormRecord<FormControl<string | boolean>>({});
 
     fields.forEach((field: ComponentConfigurationField): void => {
+      const validators: ValidatorFn[] = field.required ? [Validators.required] : [];
       form.addControl(
         field.id,
-        new FormControl<string | boolean>(this.resolveInitialValue(field, initialConfig), { nonNullable: true }),
+        new FormControl<string | boolean>(this.resolveInitialValue(field, initialConfig), { nonNullable: true, validators }),
       );
     });
 

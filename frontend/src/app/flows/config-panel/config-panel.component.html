@@ -4,13 +4,21 @@
     <div class="config-field">
       @if (field.type === booleanFieldType) {
         <mat-checkbox [formControlName]="field.id">{{ field.label }}</mat-checkbox>
-      } @else {
+        @if (isFieldInvalid(field.id)) {
+          <mat-error>{{ field.label }} is required.</mat-error>
+        }
+      }
+      @if(field.type === stringFieldType || field.type === metaDataFieldType) {
         <mat-form-field appearance="outline">
           <mat-label>{{ field.label }}</mat-label>
           <input matInput [formControlName]="field.id" />
+          @if (isFieldInvalid(field.id)) {
+            <mat-error>{{ field.label }} is required.</mat-error>
+          }
         </mat-form-field>
       }
     </div>
   }
 </div>
+
 

@@ -45,9 +45,11 @@
                   </div>
                 </td>
                 <td class="col-name">{{ flow.name }}</td>
-                <td class="col-consumer">{{ flow.consumer.name }}</td>
-                <td class="col-services">{{ getServicesNames(flow.services) }}</td>
-                <td class="col-producer">{{ flow.producer.name }}</td>
+                <td class="col-consumer" [title]="flow.consumer.description">{{ flow.consumer.name }}</td>
+                <td class="col-services"
+                    [title]="getServicesTooltip(flow.services)">{{ getServicesNames(flow.services) }}
+                </td>
+                <td class="col-producer" [title]="flow.producer.description">{{ flow.producer.name }}</td>
               </tr>
             }
           </tbody>

@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { FlowsService } from '../services/flows.service';
 import {FlowComponentSummary, FlowSummary} from '../types/flow-summary';
 import {MatIcon} from '@angular/material/icon';
-import {MatButton, MatIconButton} from '@angular/material/button';
+import {MatButton} from '@angular/material/button';
 
 @Component({
   selector: 'app-flows-list',
@@ -75,5 +75,12 @@ export class FlowsListComponent implements OnInit {
   getServicesNames(services: FlowComponentSummary[]): string {
     if (!services || services.length === 0) return '-';
     return services.map((service: FlowComponentSummary): string => service.name).join(', ');
+  }
+
+  getServicesTooltip(services: FlowComponentSummary[]): string {
+    if (!services || services.length === 0) return '';
+    return services
+      .map((service: FlowComponentSummary): string => `${service.name}: ${service.description}`)
+      .join('\n');
   }
 }

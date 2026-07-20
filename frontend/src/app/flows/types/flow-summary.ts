@@ -1,6 +1,7 @@
 /** Lightweight component representation used in flow listings: just the display name. */
 export interface FlowComponentSummary {
   name: string;
+  description: string;
 }
 
 /** Shape returned by GET /flow (list view). */

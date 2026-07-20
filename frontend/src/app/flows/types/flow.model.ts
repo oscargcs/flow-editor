@@ -9,7 +9,5 @@ export interface Flow {
   consumer: FlowComponent;
   services: FlowComponent[];
   producer: FlowComponent;
-  createdAt?: string;
-  updatedAt?: string;
 }
 

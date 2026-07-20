@@ -45,7 +45,7 @@ export class FlowCreate {
   readonly isEditMode: WritableSignal<boolean> = signal(false);
   readonly isLoading: WritableSignal<boolean> = signal(false);
   readonly isSaving: WritableSignal<boolean> = signal(false);
-  readonly selectedFlowId: WritableSignal<string | null> = signal(null);
+  readonly selectedFlowId: WritableSignal<string> = signal('');
   readonly pageTitle: Signal<string> = computed((): string => (this.isEditMode() ? 'Edit flow' : 'Create flow'));
 
   readonly consumerOptions: WritableSignal<ComponentOption[]> = signal([]);
@@ -74,7 +74,7 @@ export class FlowCreate {
       return;
     }
 
-    const flowId: string | null = this.selectedFlowId();
+    const flowId: string = this.selectedFlowId();
 
     if (this.isEditMode() && flowId) {
       this.isSaving.set(true);
@@ -156,7 +156,7 @@ export class FlowCreate {
     this.flowsService.getFlow(flowId).subscribe({
       next: (flow: FlowDetail): void => {
         this.formService.patchFromFlow(flow);
-        this.formService.primeFromFlowDetail(flow);
+        this.formService.populateFromFlowDetail(flow);
         this.isLoading.set(false);
       },
       error: (error: unknown): void => {

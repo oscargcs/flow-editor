@@ -70,14 +70,14 @@ export class FlowFormService {
   loadConsumerConfig(componentId: string, label: string, initialConfig?: Record<string, unknown>): void {
     if (!componentId) {
       this.consumerPanel.set(null);
-      this.form.setControl('consumer', this.buildEmptyComponentGroup([Validators.required]), { emitEvent: false });
+      this.form.setControl('consumer', this.buildEmptyComponentGroup([Validators.required]));
       return;
     }
 
     this.resolvePanel$(componentId, label, initialConfig).subscribe({
       next: (panel: ComponentConfigPanel): void => {
         this.consumerPanel.set(panel);
-        this.form.setControl('consumer', panel.form, { emitEvent: false });
+        this.form.setControl('consumer', panel.form);
       },
       error: (error: unknown): void => console.error('Error loading consumer configuration', error),
     });
@@ -87,14 +87,14 @@ export class FlowFormService {
   loadProducerConfig(componentId: string, label: string, initialConfig?: Record<string, unknown>): void {
     if (!componentId) {
       this.producerPanel.set(null);
-      this.form.setControl('producer', this.buildEmptyComponentGroup([Validators.required]), { emitEvent: false });
+      this.form.setControl('producer', this.buildEmptyComponentGroup([Validators.required]));
       return;
     }
 
     this.resolvePanel$(componentId, label, initialConfig).subscribe({
       next: (panel: ComponentConfigPanel): void => {
         this.producerPanel.set(panel);
-        this.form.setControl('producer', panel.form, { emitEvent: false });
+        this.form.setControl('producer', panel.form);
       },
       error: (error: unknown): void => console.error('Error loading producer configuration', error),
     });
@@ -135,25 +135,23 @@ export class FlowFormService {
    * would otherwise trigger, since everything needed to render the panels is
    * already there.
    */
-  primeFromFlowDetail(flow: FlowDetail): void {
-    const consumerPanel: ComponentConfigPanel | null = flow.consumer?.id ? this.primePanel(flow.consumer) : null;
+  populateFromFlowDetail(flow: FlowDetail): void {
+    const consumerPanel: ComponentConfigPanel = this.populatePanel(flow.consumer);
     this.consumerPanel.set(consumerPanel);
     this.form.setControl(
       'consumer',
-      consumerPanel?.form ?? this.buildEmptyComponentGroup([Validators.required]),
-      { emitEvent: false },
+      consumerPanel.form ?? this.buildEmptyComponentGroup([Validators.required])
     );
 
-    const producerPanel: ComponentConfigPanel | null = flow.producer?.id ? this.primePanel(flow.producer) : null;
+    const producerPanel: ComponentConfigPanel = this.populatePanel(flow.producer);
     this.producerPanel.set(producerPanel);
     this.form.setControl(
       'producer',
-      producerPanel?.form ?? this.buildEmptyComponentGroup([Validators.required]),
-      { emitEvent: false },
+      producerPanel.form ?? this.buildEmptyComponentGroup([Validators.required])
     );
 
     const servicePanels: ComponentConfigPanel[] = (flow.services ?? []).map(
-      (service: FlowDetailComponent): ComponentConfigPanel => this.primePanel(service),
+      (service: FlowDetailComponent): ComponentConfigPanel => this.populatePanel(service),
     );
     this.servicePanels.set(servicePanels);
     this.mountServicePanels(servicePanels);
@@ -162,8 +160,8 @@ export class FlowFormService {
   /** Replace the `services` FormArray's contents with the given panels' (already-built) form groups, in order. */
   private mountServicePanels(panels: ComponentConfigPanel[]): void {
     const servicesArray: FormArray<ComponentFormGroup> = this.form.controls.services;
-    servicesArray.clear({ emitEvent: false });
-    panels.forEach((panel: ComponentConfigPanel): void => servicesArray.push(panel.form, { emitEvent: false }));
+    servicesArray.clear();
+    panels.forEach((panel: ComponentConfigPanel): void => servicesArray.push(panel.form));
   }
 
   /** Return the cached panel for a component, or fetch its fields and build/cache it if this is the first time it's selected in this session. */
@@ -181,7 +179,7 @@ export class FlowFormService {
   }
 
   /** Build (or reuse from cache) a panel from an already-known FlowDetailComponent, without any HTTP call. */
-  private primePanel(component: FlowDetailComponent): ComponentConfigPanel {
+  private populatePanel(component: FlowDetailComponent): ComponentConfigPanel {
     const cached: ComponentConfigPanel | undefined = this.panelCache.get(component.id);
     if (cached) return cached;
 

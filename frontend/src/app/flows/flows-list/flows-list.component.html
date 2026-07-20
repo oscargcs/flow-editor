@@ -45,9 +45,9 @@
                   </div>
                 </td>
                 <td class="col-name">{{ flow.name }}</td>
-                <td class="col-consumer">{{ getComponentName(flow.consumer) }}</td>
+                <td class="col-consumer">{{ flow.consumer.name }}</td>
                 <td class="col-services">{{ getServicesNames(flow.services) }}</td>
-                <td class="col-producer">{{ getComponentName(flow.producer) }}</td>
+                <td class="col-producer">{{ flow.producer.name }}</td>
               </tr>
             }
           </tbody>

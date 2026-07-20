@@ -1,7 +1,8 @@
 import { Injectable, inject, signal, WritableSignal } from '@angular/core';
 import { FormBuilder, FormControl, FormRecord, ValidatorFn, Validators } from '@angular/forms';
 import { forkJoin, map, Observable, of } from 'rxjs';
-import { Flow, FlowComponent } from '../types/flow.model';
+import { FlowComponent } from '../types/flow.model';
+import { FlowDetail, FlowDetailComponent } from '../types/flow-detail';
 import { FlowFormFieldName, FlowFormGroup } from '../types/flow-form.types';
 import { CreateFlowRequest, UpdateFlowRequest } from '../types/flow-requests';
 import { ComponentConfigFormRecord, ComponentConfigPanel } from '../types/component-config-panel';
@@ -49,7 +50,6 @@ export class FlowFormService {
 
   /** Checks whether the top-level form and every selected configuration panel's form are valid. */
   isValid(): boolean {
-    console.log(this.form)
     return this.form.valid && this.getSelectedPanels().every((panel: ComponentConfigPanel) => panel.form.valid);
   }
 
@@ -68,13 +68,39 @@ export class FlowFormService {
     return servicePanels;
   }
 
-  patchFromFlow(flow: Flow): void {
+  patchFromFlow(flow: FlowDetail): void {
     this.form.patchValue({
       name: flow.name,
       consumer: flow.consumer?.id ?? '',
-      services: flow.services?.map((service: FlowComponent): string => service.id) ?? [],
+      services: flow.services?.map((service: FlowDetailComponent): string => service.id) ?? [],
       producer: flow.producer?.id ?? '',
     });
+  }
+
+  /**
+   * Prime the consumer/producer/service panels directly from a FlowDetail, whose
+   * components already carry their label + resolved field definitions + saved
+   * config (as returned by GET /flow/:id). This avoids the extra per-component
+   * HTTP calls that `loadConsumerConfig`/`loadProducerConfig`/`syncServicePanels`
+   * would otherwise trigger, since everything needed to render the panels is
+   * already there.
+   */
+  primeFromFlowDetail(flow: FlowDetail): void {
+    this.consumerPanel.set(flow.consumer?.id ? this.primePanel(flow.consumer) : null);
+    this.producerPanel.set(flow.producer?.id ? this.primePanel(flow.producer) : null);
+    this.servicePanels.set(
+      (flow.services ?? []).map((service: FlowDetailComponent): ComponentConfigPanel => this.primePanel(service)),
+    );
+  }
+
+  /** Build (or reuse from cache) a panel from an already-known FlowDetailComponent, without any HTTP call. */
+  private primePanel(component: FlowDetailComponent): ComponentConfigPanel {
+    const cached: ComponentConfigPanel | undefined = this.panelCache.get(component.id);
+    if (cached) return cached;
+
+    const panel: ComponentConfigPanel = this.buildPanel(component.id, component.label, component.fields, component.config);
+    this.panelCache.set(component.id, panel);
+    return panel;
   }
 
   /** Resolve the consumer's configuration panel (from cache or backend) and set it as active. Clears the panel when componentId is empty. */

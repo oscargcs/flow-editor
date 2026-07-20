@@ -12,7 +12,7 @@ import {
   ComponentOption,
   GroupedComponentOptions,
 } from '../services/component-definitions.service';
-import { Flow, FlowComponent } from '../types/flow.model';
+import { FlowDetail } from '../types/flow-detail';
 import { FlowFormService } from '../services/flow-form.service';
 import { FlowFormFieldName, FlowFormGroup } from '../types/flow-form.types';
 import { ConfigPanelComponent } from '../config-panel/config-panel.component';
@@ -149,9 +149,9 @@ export class FlowCreate {
   private loadFlow(flowId: string): void {
     this.isLoading.set(true);
     this.flowsService.getFlow(flowId).subscribe({
-      next: (flow: Flow): void => {
+      next: (flow: FlowDetail): void => {
         this.formService.patchFromFlow(flow);
-        this.prefillConfigPanels(flow);
+        this.formService.primeFromFlowDetail(flow);
         this.isLoading.set(false);
       },
       error: (error: unknown): void => {
@@ -159,31 +159,6 @@ export class FlowCreate {
         this.isLoading.set(false);
       },
     });
-  }
-
-  /** Trigger the config panel loads for the flow being edited, seeding each panel's form with its saved config values. */
-  private prefillConfigPanels(flow: Flow): void {
-    this.formService.loadConsumerConfig(
-      flow.consumer.id,
-      this.findLabel(this.consumerOptions(), flow.consumer.id),
-      flow.consumer.config,
-    );
-    this.formService.loadProducerConfig(
-      flow.producer.id,
-      this.findLabel(this.producerOptions(), flow.producer.id),
-      flow.producer.config,
-    );
-
-    const selected: ComponentOption[] = flow.services.map(
-      (service: FlowComponent): ComponentOption => ({
-        id: service.id,
-        label: this.findLabel(this.serviceOptions(), service.id),
-      }),
-    );
-    const initialConfigs: Map<string, Record<string, unknown>> = new Map(
-      flow.services.map((service: FlowComponent): [string, Record<string, unknown>] => [service.id, service.config]),
-    );
-    this.formService.syncServicePanels(selected, initialConfigs);
   }
 }
 

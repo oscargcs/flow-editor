@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {Flow} from '../types/flow.model';
 import {FlowSummary} from '../types/flow-summary';
+import {FlowDetail} from '../types/flow-detail';
 import {CreateFlowRequest, UpdateFlowRequest} from '../types/flow-requests';
 
 @Injectable({
@@ -16,8 +17,8 @@ export class FlowsService {
     return this.http.get<FlowSummary[]>(this.apiUrl);
   }
 
-  getFlow(id: string): Observable<Flow> {
-    return this.http.get<Flow>(`${this.apiUrl}/${id}`);
+  getFlow(id: string): Observable<FlowDetail> {
+    return this.http.get<FlowDetail>(`${this.apiUrl}/${id}`);
   }
 
   createFlow(request: CreateFlowRequest): Observable<Flow> {

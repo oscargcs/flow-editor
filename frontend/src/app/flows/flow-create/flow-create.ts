@@ -52,6 +52,11 @@ export class FlowCreate {
   readonly serviceOptions: WritableSignal<ComponentOption[]> = signal([]);
   readonly producerOptions: WritableSignal<ComponentOption[]> = signal([]);
 
+  /** Ids of the currently selected services, derived from the mounted service panels (kept in selection order). */
+  readonly serviceIds: Signal<string[]> = computed((): string[] =>
+    this.formService.servicePanels().map((panel) => panel.componentId),
+  );
+
   constructor() {
     this.loadOptions();
 

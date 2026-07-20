@@ -18,7 +18,7 @@
 
       <mat-form-field appearance="outline" class="field field-consumer">
         <mat-label>Consumer</mat-label>
-        <mat-select formControlName="consumer" (selectionChange)="onConsumerChange($event)">
+        <mat-select [formControl]="form.controls.consumer.controls.id" (selectionChange)="onConsumerChange($event)">
           @for (option of consumerOptions(); track option.id) {
             <mat-option [value]="option.id">{{ option.label }}</mat-option>
           }
@@ -34,7 +34,7 @@
 
       <mat-form-field appearance="outline" class="field field-services">
         <mat-label>Services</mat-label>
-        <mat-select formControlName="services" multiple (selectionChange)="onServicesChange($event)">
+        <mat-select multiple [value]="serviceIds()" (selectionChange)="onServicesChange($event)">
           @for (option of serviceOptions(); track option.id) {
             <mat-option [value]="option.id">{{ option.label }}</mat-option>
           }
@@ -51,7 +51,7 @@
 
       <mat-form-field appearance="outline" class="field field-producer">
         <mat-label>Producer</mat-label>
-        <mat-select formControlName="producer" (selectionChange)="onProducerChange($event)">
+        <mat-select [formControl]="form.controls.producer.controls.id" (selectionChange)="onProducerChange($event)">
           @for (option of producerOptions(); track option.id) {
             <mat-option [value]="option.id">{{ option.label }}</mat-option>
           }

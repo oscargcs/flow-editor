@@ -1,21 +1,21 @@
 import { Injectable, inject, signal, WritableSignal } from '@angular/core';
-import { FormBuilder, FormControl, FormRecord, ValidatorFn, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
 import { forkJoin, map, Observable, of } from 'rxjs';
 import { FlowComponent } from '../types/flow.model';
 import { FlowDetail, FlowDetailComponent } from '../types/flow-detail';
 import { FlowFormFieldName, FlowFormGroup } from '../types/flow-form.types';
 import { CreateFlowRequest, UpdateFlowRequest } from '../types/flow-requests';
-import { ComponentConfigFormRecord, ComponentConfigPanel } from '../types/component-config-panel';
+import { ComponentConfigPanel, ComponentFormGroup } from '../types/component-config-panel';
 import { ComponentConfigurationField } from '../types/component-configuration-field';
 import { ComponentDefinitionsService, ComponentOption } from './component-definitions.service';
 
 const BOOLEAN_FIELD_TYPE = 'boolean';
 
 /**
- * Owns the reactive form used to create and edit a flow, plus the logic to
- * patch it from an existing 'Flow' and to build the create/update requests.
- * Also owns the dynamic configuration panels (fields + form) for the
- * currently selected consumer, producer, and services.
+ * Owns the single reactive form used to create and edit a flow. `consumer` and `producer`
+ * are nested groups (`{ id, ...configFields }`) and `services` is a FormArray of the same
+ * shape — there is only one root FormGroup (`form`) for the whole page, so validity and
+ * touched-state simply delegate to it.
  */
 @Injectable()
 export class FlowFormService {
@@ -24,56 +24,106 @@ export class FlowFormService {
 
   readonly form: FlowFormGroup = this.fb.group({
     name: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(255)]),
-    consumer: this.fb.nonNullable.control('', [Validators.required]),
-    services: this.fb.nonNullable.control<string[]>([]),
-    producer: this.fb.nonNullable.control('', [Validators.required]),
+    consumer: this.buildEmptyComponentGroup([Validators.required]),
+    producer: this.buildEmptyComponentGroup([Validators.required]),
+    services: this.fb.array<ComponentFormGroup>([]),
   });
 
+  /** Metadata (label + field definitions) for the currently mounted consumer/producer/service panels, used to render <app-config-panel>. */
   readonly consumerPanel: WritableSignal<ComponentConfigPanel | null> = signal(null);
   readonly producerPanel: WritableSignal<ComponentConfigPanel | null> = signal(null);
   readonly servicePanels: WritableSignal<ComponentConfigPanel[]> = signal([]);
 
   /**
    * Every panel ever built during this session, keyed by componentId.
-   * A component's fields/options never change during a session, so once its
-   * panel is built (fields fetched + form created) it's reused for the rest
-   * of the session. This both avoids redundant backend calls and preserves
-   * the user's entered values across selection/deselection cycles, since the
-   * same FormRecord instance is reused instead of being rebuilt.
+   * A component's fields never change during a session, so once its panel is
+   * built (fields fetched + form created) it's reused for the rest of the
+   * session. This both avoids redundant backend calls and preserves the
+   * user's entered values across selection/deselection cycles, since the
+   * same form group instance is reused instead of being rebuilt.
    */
   private readonly panelCache: Map<string, ComponentConfigPanel> = new Map();
 
+  /** Checks whether a top-level field is invalid and has been interacted with (dirty/touched). `consumer`/`producer` are nested groups, so their `id` control is checked instead. */
   isFieldInvalid(fieldName: FlowFormFieldName): boolean {
-    const control: FormControl = this.form.controls[fieldName];
+    const control: AbstractControl =
+      fieldName === 'consumer' || fieldName === 'producer'
+        ? this.form.controls[fieldName].controls.id
+        : this.form.controls[fieldName];
     return control.invalid && (control.dirty || control.touched);
   }
 
-  /** Checks whether the top-level form and every selected configuration panel's form are valid. */
+  /** The whole form (name + consumer + producer + services, all nested inside it) is valid on its own — no manual aggregation needed. */
   isValid(): boolean {
-    return this.form.valid && this.getSelectedPanels().every((panel: ComponentConfigPanel) => panel.form.valid);
+    return this.form.valid;
   }
 
   markAllAsTouched(): void {
     this.form.markAllAsTouched();
-    this.getSelectedPanels().forEach((panel: ComponentConfigPanel) => panel.form.markAllAsTouched());
-  }
-
-  /** Returns all selected configuration panels. */
-  private getSelectedPanels(): ComponentConfigPanel[] {
-    const servicePanels: ComponentConfigPanel[] = [...this.servicePanels()];
-    const consumerPanels: ComponentConfigPanel | null = this.consumerPanel();
-    const producerPanels: ComponentConfigPanel | null = this.producerPanel();
-    if (consumerPanels) servicePanels.push(consumerPanels);
-    if (producerPanels) servicePanels.push(producerPanels);
-    return servicePanels;
   }
 
   patchFromFlow(flow: FlowDetail): void {
-    this.form.patchValue({
-      name: flow.name,
-      consumer: flow.consumer?.id ?? '',
-      services: flow.services?.map((service: FlowDetailComponent): string => service.id) ?? [],
-      producer: flow.producer?.id ?? '',
+    this.form.patchValue({ name: flow.name });
+  }
+
+  /** Resolve the consumer's configuration panel (from cache or backend) and mount it into the form. Resets to an empty group when componentId is empty. */
+  loadConsumerConfig(componentId: string, label: string, initialConfig?: Record<string, unknown>): void {
+    if (!componentId) {
+      this.consumerPanel.set(null);
+      this.form.setControl('consumer', this.buildEmptyComponentGroup([Validators.required]), { emitEvent: false });
+      return;
+    }
+
+    this.resolvePanel$(componentId, label, initialConfig).subscribe({
+      next: (panel: ComponentConfigPanel): void => {
+        this.consumerPanel.set(panel);
+        this.form.setControl('consumer', panel.form, { emitEvent: false });
+      },
+      error: (error: unknown): void => console.error('Error loading consumer configuration', error),
+    });
+  }
+
+  /** Resolve the producer's configuration panel (from cache or backend) and mount it into the form. Resets to an empty group when componentId is empty. */
+  loadProducerConfig(componentId: string, label: string, initialConfig?: Record<string, unknown>): void {
+    if (!componentId) {
+      this.producerPanel.set(null);
+      this.form.setControl('producer', this.buildEmptyComponentGroup([Validators.required]), { emitEvent: false });
+      return;
+    }
+
+    this.resolvePanel$(componentId, label, initialConfig).subscribe({
+      next: (panel: ComponentConfigPanel): void => {
+        this.producerPanel.set(panel);
+        this.form.setControl('producer', panel.form, { emitEvent: false });
+      },
+      error: (error: unknown): void => console.error('Error loading producer configuration', error),
+    });
+  }
+
+  /**
+   * Keep the service configuration panels (and the `services` FormArray) in sync with the
+   * currently selected services. Reuses cached panels (preserving their form state across a
+   * deselect/reselect cycle) and only fetches fields for services never loaded before.
+   * The resulting panel order always matches the selection order.
+   */
+  syncServicePanels(selected: ComponentOption[], initialConfigs?: Map<string, Record<string, unknown>>): void {
+    if (selected.length === 0) {
+      this.servicePanels.set([]);
+      this.form.controls.services.clear();
+      return;
+    }
+
+    const panels$: Observable<ComponentConfigPanel>[] = selected.map(
+      (option: ComponentOption): Observable<ComponentConfigPanel> =>
+        this.resolvePanel$(option.id, option.label, initialConfigs?.get(option.id)),
+    );
+
+    forkJoin(panels$).subscribe({
+      next: (panels: ComponentConfigPanel[]): void => {
+        this.servicePanels.set(panels);
+        this.mountServicePanels(panels);
+      },
+      error: (error: unknown): void => console.error('Error loading service configuration', error),
     });
   }
 
@@ -86,70 +136,34 @@ export class FlowFormService {
    * already there.
    */
   primeFromFlowDetail(flow: FlowDetail): void {
-    this.consumerPanel.set(flow.consumer?.id ? this.primePanel(flow.consumer) : null);
-    this.producerPanel.set(flow.producer?.id ? this.primePanel(flow.producer) : null);
-    this.servicePanels.set(
-      (flow.services ?? []).map((service: FlowDetailComponent): ComponentConfigPanel => this.primePanel(service)),
-    );
-  }
-
-  /** Build (or reuse from cache) a panel from an already-known FlowDetailComponent, without any HTTP call. */
-  private primePanel(component: FlowDetailComponent): ComponentConfigPanel {
-    const cached: ComponentConfigPanel | undefined = this.panelCache.get(component.id);
-    if (cached) return cached;
-
-    const panel: ComponentConfigPanel = this.buildPanel(component.id, component.label, component.fields, component.config);
-    this.panelCache.set(component.id, panel);
-    return panel;
-  }
-
-  /** Resolve the consumer's configuration panel (from cache or backend) and set it as active. Clears the panel when componentId is empty. */
-  loadConsumerConfig(componentId: string, label: string, initialConfig?: Record<string, unknown>): void {
-    if (!componentId) {
-      this.consumerPanel.set(null);
-      return;
-    }
-
-    this.resolvePanel$(componentId, label, initialConfig).subscribe({
-      next: (panel: ComponentConfigPanel) => this.consumerPanel.set(panel),
-      error: (error: unknown) => console.error('Error loading consumer configuration', error),
-    });
-  }
-
-  /** Resolve the producer's configuration panel (from cache or backend) and set it as active. Clears the panel when componentId is empty. */
-  loadProducerConfig(componentId: string, label: string, initialConfig?: Record<string, unknown>): void {
-    if (!componentId) {
-      this.producerPanel.set(null);
-      return;
-    }
-
-    this.resolvePanel$(componentId, label, initialConfig).subscribe({
-      next: (panel: ComponentConfigPanel) => this.producerPanel.set(panel),
-      error: (error: unknown) => console.error('Error loading producer configuration', error),
-    });
-  }
-
-  /**
-   * Keep the service configuration panels in sync with the currently selected services.
-   * Reuses cached panels (preserving their form state across a deselect/reselect cycle)
-   * and only fetches fields for services that have never been loaded before.
-   * The resulting panel order always matches the selection order.
-   */
-  syncServicePanels(selected: ComponentOption[], initialConfigs?: Map<string, Record<string, unknown>>): void {
-    if (selected.length === 0) {
-      this.servicePanels.set([]);
-      return;
-    }
-
-    const panels$: Observable<ComponentConfigPanel>[] = selected.map(
-      (option: ComponentOption): Observable<ComponentConfigPanel> =>
-        this.resolvePanel$(option.id, option.label, initialConfigs?.get(option.id)),
+    const consumerPanel: ComponentConfigPanel | null = flow.consumer?.id ? this.primePanel(flow.consumer) : null;
+    this.consumerPanel.set(consumerPanel);
+    this.form.setControl(
+      'consumer',
+      consumerPanel?.form ?? this.buildEmptyComponentGroup([Validators.required]),
+      { emitEvent: false },
     );
 
-    forkJoin(panels$).subscribe({
-      next: (panels: ComponentConfigPanel[]) => this.servicePanels.set(panels),
-      error: (error: unknown): void => console.error('Error loading service configuration', error),
-    });
+    const producerPanel: ComponentConfigPanel | null = flow.producer?.id ? this.primePanel(flow.producer) : null;
+    this.producerPanel.set(producerPanel);
+    this.form.setControl(
+      'producer',
+      producerPanel?.form ?? this.buildEmptyComponentGroup([Validators.required]),
+      { emitEvent: false },
+    );
+
+    const servicePanels: ComponentConfigPanel[] = (flow.services ?? []).map(
+      (service: FlowDetailComponent): ComponentConfigPanel => this.primePanel(service),
+    );
+    this.servicePanels.set(servicePanels);
+    this.mountServicePanels(servicePanels);
+  }
+
+  /** Replace the `services` FormArray's contents with the given panels' (already-built) form groups, in order. */
+  private mountServicePanels(panels: ComponentConfigPanel[]): void {
+    const servicesArray: FormArray<ComponentFormGroup> = this.form.controls.services;
+    servicesArray.clear({ emitEvent: false });
+    panels.forEach((panel: ComponentConfigPanel): void => servicesArray.push(panel.form, { emitEvent: false }));
   }
 
   /** Return the cached panel for a component, or fetch its fields and build/cache it if this is the first time it's selected in this session. */
@@ -166,14 +180,22 @@ export class FlowFormService {
     );
   }
 
+  /** Build (or reuse from cache) a panel from an already-known FlowDetailComponent, without any HTTP call. */
+  private primePanel(component: FlowDetailComponent): ComponentConfigPanel {
+    const cached: ComponentConfigPanel | undefined = this.panelCache.get(component.id);
+    if (cached) return cached;
+
+    const panel: ComponentConfigPanel = this.buildPanel(component.id, component.label, component.fields, component.config);
+    this.panelCache.set(component.id, panel);
+    return panel;
+  }
+
   buildCreateRequest(): CreateFlowRequest {
     return {
       name: this.form.controls.name.value,
-      consumer: this.toFlowComponent(this.form.controls.consumer.value, this.consumerPanel()),
-      services: this.form.controls.services.value.map(
-        (serviceId: string): FlowComponent => this.toServiceFlowComponent(serviceId),
-      ),
-      producer: this.toFlowComponent(this.form.controls.producer.value, this.producerPanel()),
+      consumer: this.toFlowComponent(this.consumerPanel()),
+      services: this.servicePanels().map((panel: ComponentConfigPanel): FlowComponent => this.toFlowComponent(panel)),
+      producer: this.toFlowComponent(this.producerPanel()),
     };
   }
 
@@ -181,21 +203,19 @@ export class FlowFormService {
     return this.buildCreateRequest();
   }
 
-  private toFlowComponent(componentId: string, panel: ComponentConfigPanel | null): FlowComponent {
-    return {
-      id: componentId,
-      config: panel && panel.componentId === componentId ? panel.form.getRawValue() : {},
-    };
+  private toFlowComponent(panel: ComponentConfigPanel | null): FlowComponent {
+    if (!panel) return { id: '', config: {} };
+    return { id: panel.componentId, config: this.extractConfig(panel.form) };
   }
 
-  private toServiceFlowComponent(componentId: string): FlowComponent {
-    const panel: ComponentConfigPanel | undefined = this.servicePanels().find(
-      (candidate: ComponentConfigPanel): boolean => candidate.componentId === componentId,
-    );
-    return {
-      id: componentId,
-      config: panel ? panel.form.getRawValue() : {},
-    };
+  /** Every control in a component's form except `id` represents a configuration field value. */
+  private extractConfig(form: ComponentFormGroup): Record<string, unknown> {
+    const { id, ...config } = form.getRawValue() as Record<string, unknown>;
+    return config;
+  }
+
+  private buildEmptyComponentGroup(validators: ValidatorFn[]): ComponentFormGroup {
+    return this.fb.group({ id: this.fb.nonNullable.control('', validators) });
   }
 
   private buildPanel(
@@ -204,11 +224,12 @@ export class FlowFormService {
     fields: ComponentConfigurationField[],
     initialConfig?: Record<string, unknown>,
   ): ComponentConfigPanel {
-    const form: ComponentConfigFormRecord = new FormRecord<FormControl<string | boolean>>({});
+    const form: ComponentFormGroup = this.fb.group({ id: this.fb.nonNullable.control(componentId) });
 
     fields.forEach((field: ComponentConfigurationField): void => {
       const validators: ValidatorFn[] = field.required ? [Validators.required] : [];
-      form.addControl(
+      // Cast needed: dynamic per-component fields can't be part of ComponentFormGroup's static type.
+      (form as FormGroup).addControl(
         field.id,
         new FormControl<string | boolean>(this.resolveInitialValue(field, initialConfig), { nonNullable: true, validators }),
       );

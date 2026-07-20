@@ -1,14 +1,14 @@
-import { FormControl, FormRecord } from '@angular/forms';
+import { FormControl, FormGroup } from '@angular/forms';
 import { ComponentConfigurationField } from './component-configuration-field';
 
-/** Dynamic set of controls, one per configuration field id. Values are either a checkbox boolean or a text input string. */
-export type ComponentConfigFormRecord = FormRecord<FormControl<string | boolean>>;
 
-/** A selected component (consumer, producer, or one service) together with its configuration fields and form. */
+export type ComponentFormGroup = FormGroup<{ id: FormControl<string> }>;
+
+/** A selected component together with its configuration field definitions and its (nested) form group. */
 export interface ComponentConfigPanel {
   componentId: string;
   label: string;
   fields: ComponentConfigurationField[];
-  form: ComponentConfigFormRecord;
+  form: ComponentFormGroup;
 }
 

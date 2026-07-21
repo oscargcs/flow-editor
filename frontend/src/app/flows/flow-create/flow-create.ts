@@ -116,6 +116,10 @@ export class FlowCreate {
   }
 
   onCancel(): void {
+    if (this.form.touched && !confirm(`There are unsaved changes, would you really like to cancel?`)) {
+      return;
+    }
+
     this.router.navigate(['/flows/list']);
   }
 

@@ -12,11 +12,11 @@ export const routes: Routes = [
       },
       {
         path: 'create',
-        component: FlowCreate // TODO: replace with CreateFlowComponent
+        component: FlowCreate
       },
       {
         path: 'edit/:id',
-        component: FlowCreate // TODO: replace with EditFlowComponent
+        component: FlowCreate
       }
     ]
   },

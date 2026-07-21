@@ -39,8 +39,6 @@ This serves the Angular app on http://localhost:4200, calling the API at http://
 
 PostgreSQL, via TypeORM, storing each Flow as a single row with consumer/producer/services as jsonb columns.
 
-The shape of a flow's consumer/producer/service ({ id, config }) is variable per component type. Modeling that with normalized relational tables (one table per component type, or a generic EAV schema) would add a lot of complexity for no real benefit at this scale.
-
 -MongoDB does not have any schema or relations, schema_validation out of the box.
 -PostgreSQL is more user-friendly and has more features than MySQL.
 

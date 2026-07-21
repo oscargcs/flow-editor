@@ -53,7 +53,6 @@ export class FlowFormService {
     return control.invalid && (control.dirty || control.touched);
   }
 
-  /** The whole form (name + consumer + producer + services, all nested inside it) is valid on its own — no manual aggregation needed. */
   isValid(): boolean {
     return this.form.valid;
   }
@@ -226,7 +225,7 @@ export class FlowFormService {
 
     fields.forEach((field: ComponentConfigurationField): void => {
       const validators: ValidatorFn[] = field.required ? [Validators.required] : [];
-      // Cast needed: dynamic per-component fields can't be part of ComponentFormGroup's static type.
+
       (form as FormGroup).addControl(
         field.id,
         new FormControl<string | boolean>(this.resolveInitialValue(field, initialConfig), { nonNullable: true, validators }),
@@ -237,15 +236,6 @@ export class FlowFormService {
   }
 
   private resolveInitialValue(field: ComponentConfigurationField, initialConfig?: Record<string, unknown>): string | boolean {
-    const rawValue: unknown = initialConfig?.[field.id];
-
-    if (field.type === BOOLEAN_FIELD_TYPE) {
-      if (typeof rawValue === 'boolean') return rawValue;
-      if (typeof field.defaultValue === 'boolean') return field.defaultValue;
-      return field.defaultValue === 'true';
-    }
-
-    if (rawValue !== undefined && rawValue !== null) return String(rawValue);
-    return field.defaultValue != null ? String(field.defaultValue) : '';
+    return (initialConfig?.[field.id] ?? field.defaultValue ?? (field.type === BOOLEAN_FIELD_TYPE ? false : '')) as string | boolean;
   }
 }

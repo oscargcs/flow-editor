@@ -1,21 +1,22 @@
-import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal, Signal, WritableSignal } from '@angular/core';
-import { ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule, MatSelectChange } from '@angular/material/select';
-import { FlowsService } from '../services/flows.service';
+import {CommonModule} from '@angular/common';
+import {HttpErrorResponse} from '@angular/common/http';
+import {Component, computed, inject, signal, Signal, WritableSignal} from '@angular/core';
+import {ReactiveFormsModule} from '@angular/forms';
+import {ActivatedRoute, Router} from '@angular/router';
+import {MatButtonModule} from '@angular/material/button';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
+import {MatSelectModule, MatSelectChange} from '@angular/material/select';
+import {FlowsService} from '../services/flows.service';
 import {
   ComponentDefinitionsService,
   ComponentOption,
   GroupedComponentOptions,
 } from '../services/component-definitions.service';
-import { FlowDetail } from '../types/flow-detail';
-import { FlowFormService } from '../services/flow-form.service';
-import { FlowFormFieldName, FlowFormGroup } from '../types/flow-form.types';
-import { ConfigPanelComponent } from '../config-panel/config-panel.component';
+import {FlowDetail} from '../types/flow-detail';
+import {FlowFormService} from '../services/flow-form.service';
+import {FlowFormFieldName, FlowFormGroup} from '../types/flow-form.types';
+import {ConfigPanelComponent} from '../config-panel/config-panel.component';
 
 @Component({
   selector: 'app-flow-create',
@@ -41,12 +42,18 @@ export class FlowCreate {
 
   readonly form: FlowFormGroup = this.formService.form;
 
-
   readonly isEditMode: WritableSignal<boolean> = signal(false);
   readonly isLoading: WritableSignal<boolean> = signal(false);
   readonly isSaving: WritableSignal<boolean> = signal(false);
+  readonly hasSubmitAttempted: WritableSignal<boolean> = signal(false);
+  readonly backendErrorMessage: WritableSignal<string> = signal('');
   readonly selectedFlowId: WritableSignal<string> = signal('');
   readonly pageTitle: Signal<string> = computed((): string => (this.isEditMode() ? 'Edit flow' : 'Create flow'));
+  readonly incompleteFormMessage: Signal<string> = computed(() =>
+    this.hasSubmitAttempted() && !this.formService.isValid()
+      ? 'Please fill in all required fields before saving.'
+      : '',
+  );
 
   readonly consumerOptions: WritableSignal<ComponentOption[]> = signal([]);
   readonly serviceOptions: WritableSignal<ComponentOption[]> = signal([]);
@@ -69,6 +76,8 @@ export class FlowCreate {
   }
 
   onSave(): void {
+    this.hasSubmitAttempted.set(true);
+
     if (!this.formService.isValid() || this.isSaving()) {
       this.formService.markAllAsTouched();
       return;
@@ -83,6 +92,7 @@ export class FlowCreate {
           this.router.navigate(['/flows/list']);
         },
         error: (error: unknown): void => {
+          this.backendErrorMessage.set(this.toBackendErrorMessage(error));
           console.error('Error saving flow', error);
           this.isSaving.set(false);
         },
@@ -97,6 +107,7 @@ export class FlowCreate {
         this.router.navigate(['/flows/list']);
       },
       error: (error: unknown): void => {
+        this.backendErrorMessage.set(this.toBackendErrorMessage(error));
         console.error('Error saving flow', error);
         this.isSaving.set(false);
       },
@@ -123,17 +134,13 @@ export class FlowCreate {
   onServicesChange(event: MatSelectChange): void {
     const componentIds: string[] = event.value;
     const selected: ComponentOption[] = componentIds.map(
-      (id: string): ComponentOption => ({ id, label: this.findLabel(this.serviceOptions(), id) }),
+      (id: string): ComponentOption => ({id, label: this.findLabel(this.serviceOptions(), id)}),
     );
     this.formService.syncServicePanels(selected);
   }
 
   isFieldInvalid(fieldName: FlowFormFieldName): boolean {
     return this.formService.isFieldInvalid(fieldName);
-  }
-
-  trackById(_index: number, item: ComponentOption): string {
-    return item.id;
   }
 
   private findLabel(options: ComponentOption[], componentId: string): string {
@@ -164,6 +171,11 @@ export class FlowCreate {
         this.isLoading.set(false);
       },
     });
+  }
+
+  private toBackendErrorMessage(error: any): string {
+    if (error.status === 409) return error.message;
+    return '';
   }
 }
 

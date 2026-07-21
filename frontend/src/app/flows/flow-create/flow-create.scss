@@ -58,3 +58,18 @@ app-config-panel {
   gap: 12px;
   margin-top: 12px;
 }
+
+.submit-errors {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.submit-error {
+  margin: 0;
+  color: #b3261e;
+  font-size: 14px;
+}
+

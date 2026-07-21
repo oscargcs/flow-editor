@@ -65,6 +65,17 @@
         <app-config-panel [panel]="panel" />
       }
 
+      @if (incompleteFormMessage() || backendErrorMessage()) {
+        <div class="submit-errors" aria-live="polite">
+          @if (incompleteFormMessage(); as message) {
+            <p class="submit-error">{{ message }}</p>
+          }
+          @if (backendErrorMessage(); as message) {
+            <p class="submit-error">{{ message }}</p>
+          }
+        </div>
+      }
+
       <div class="actions">
         <button mat-stroked-button type="button" (click)="onCancel()">Cancel</button>
         <button mat-flat-button color="primary" type="submit" [disabled]="isSaving()">

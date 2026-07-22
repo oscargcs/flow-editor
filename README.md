@@ -14,20 +14,27 @@ A full-stack app to create, list, edit and delete **flows**, each made of one co
 
 ## Backend
 
-Open your docker Desktop and run docker-compose up -d in the /backend folder.
+> Open your Docker Desktop 
+
+> Copy `.env.example` to `.env` manually.
 
 ```bash
-$ npm install
+cd backend
+
+# Install dependencies
+npm install
+
+# Start the PostgreSQL database
+docker compose up -d
 
 # development
 $ npm start
-
-# production mode
-$ npm start:prod
 ```
 
 ## Frontend
 ```bash
+cd frontend
+
 $ npm install
 
 # development

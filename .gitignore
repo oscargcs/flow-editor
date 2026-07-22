@@ -1,0 +1,23 @@
+# IDE
+.idea/
+.vscode/
+
+# Node
+**/node_modules/
+
+# Build
+**/dist/
+**/coverage/
+
+# Angular
+frontend/.angular/
+
+# Environment
+**/.env
+
+# Logs
+*.log
+
+# macOS / Windows
+.DS_Store
+Thumbs.db

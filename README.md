@@ -1,5 +1,5 @@
 ## Description
-A full-stack app to create, list, edit and delete **flows**, each made of one consumer, one or more services, and one producer, picked from a set of predefined component definitions (JSON files).
+A full-stack app to create, list, edit and delete **flows**, each made of one consumer, zero or more services, and one producer, picked from a set of predefined component definitions (JSON files).
 
 - **Backend**: NestJS + TypeORM + PostgreSQL
 - **Frontend**: Angular 21 (standalone components, signals, Reactive Forms) + Angular Material

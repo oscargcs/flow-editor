@@ -91,7 +91,7 @@ export class FlowCreate {
         next: (): void => {
           this.router.navigate(['/flows/list']);
         },
-        error: (error: unknown): void => {
+        error: (error: HttpErrorResponse): void => {
           this.backendErrorMessage.set(this.toBackendErrorMessage(error));
           console.error('Error saving flow', error);
           this.isSaving.set(false);
@@ -106,7 +106,7 @@ export class FlowCreate {
       next: (): void => {
         this.router.navigate(['/flows/list']);
       },
-      error: (error: unknown): void => {
+      error: (error: HttpErrorResponse): void => {
         this.backendErrorMessage.set(this.toBackendErrorMessage(error));
         console.error('Error saving flow', error);
         this.isSaving.set(false);
@@ -177,9 +177,16 @@ export class FlowCreate {
     });
   }
 
-  private toBackendErrorMessage(error: any): string {
-    if (error.status === 409) return error.message;
-    return '';
+  private toBackendErrorMessage(httpErrorResponse: HttpErrorResponse): string {
+    if (httpErrorResponse.status === 0) {
+      return 'Unable to connect to the server.';
+    }
+
+    if (typeof httpErrorResponse.error?.message === 'string') {
+      return httpErrorResponse.error.message;
+    }
+
+    return 'An unexpected error occurred. Please try again.';
   }
 }
 

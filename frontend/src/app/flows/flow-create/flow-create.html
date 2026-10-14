@@ -8,7 +8,7 @@
     <div class="status-message" aria-live="polite">Loading flow...</div>
   } @else {
     <form class="flow-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
-      <mat-form-field appearance="outline" class="field field-name">
+      <mat-form-field appearance="outline" class="w-100" subscriptSizing="dynamic">
         <mat-label>Name</mat-label>
         <input matInput formControlName="name" type="text" maxlength="255"/>
         @if (isFieldInvalid('name')) {
@@ -16,7 +16,7 @@
         }
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="field field-consumer">
+      <mat-form-field appearance="outline" class="w-100" subscriptSizing="dynamic">
         <mat-label>Consumer</mat-label>
         <mat-select [formControl]="form.controls.consumer.controls.id" (selectionChange)="onConsumerChange($event)">
           @for (option of consumerOptions(); track option.id) {
@@ -32,7 +32,7 @@
         <app-config-panel [panel]="panel" />
       }
 
-      <mat-form-field appearance="outline" class="field field-services">
+      <mat-form-field appearance="outline" class="w-100" subscriptSizing="dynamic">
         <mat-label>Services</mat-label>
         <mat-select multiple [value]="serviceIds()" (selectionChange)="onServicesChange($event)">
           @for (option of serviceOptions(); track option.id) {
@@ -49,7 +49,7 @@
         </div>
       }
 
-      <mat-form-field appearance="outline" class="field field-producer">
+      <mat-form-field appearance="outline" class="w-100" subscriptSizing="dynamic">
         <mat-label>Producer</mat-label>
         <mat-select [formControl]="form.controls.producer.controls.id" (selectionChange)="onProducerChange($event)">
           @for (option of producerOptions(); track option.id) {

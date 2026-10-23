@@ -189,7 +189,7 @@ export class FlowFormService {
 
   buildCreateRequest(): CreateFlowRequest {
     return {
-      name: this.form.controls.name.value,
+      name: this.form.controls.name.value.trim(),
       consumer: this.toFlowComponent(this.consumerPanel()),
       services: this.servicePanels().map((panel: ComponentConfigPanel): FlowComponent => this.toFlowComponent(panel)),
       producer: this.toFlowComponent(this.producerPanel()),
